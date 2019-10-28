@@ -1,0 +1,490 @@
+R-Shiny Tricks or Treats, Maybe Both?
+========================================================
+author: Göknur Giner
+date: 28 October 2019
+width: 1440
+height: 900
+font-family: 'Century Gothic'
+
+About this presentation
+========================================================
+The presentation consists of two sections:
+
+**1) The basics of shiny:** from Hadley Wickham's latest book [Mastering shiny](https://mastering-shiny.org/index.html).
+
+**2) Advanced tips and tricks:** from Dean Attali's [advanced-shiny](https://github.com/daattali/advanced-shiny) github repository.
+
+Resources
+========================================================
+- Check out [Shiny tutorial](https://shiny.rstudio.com/tutorial/) and [Shiny cheat sheet](https://rstudio.com/resources/cheatsheets/) on RStudio.
+
+- Visit Dean Attali's [website](https://deanattali.com/blog/building-shiny-apps-tutorial/) for online tutorial and private lessons. 
+
+- Read Hadley Wickham's latest book [Mastering shiny](https://mastering-shiny.org/index.html).
+
+
+What is Shiny?
+========================================================
+- Framework for creating web applications using R code
+
+- Without the knowledge of HTML, CSS, or JavaScript
+
+
+Why use Shiny?
+========================================================
+- Create dashboards that track important performance indicators
+
+- Replace hundreds of pages of PDFs with interactive apps
+
+- Create interactive demos for teaching statistics and data science
+
+So on..
+
+
+Install and load Shiny package
+========================================================
+```{r, eval = FALSE}
+
+install.packages("shiny")
+
+library(shiny)
+
+runExample("01_hello")
+
+# To view all existing examples, run
+
+dir(system.file("examples", package="shiny"))
+```
+
+Shiny applications has 3 components
+========================================================
+- a user interface object (UI)
+
+- a server function (server)
+
+- a shinyApp() function
+
+```{r, eval = FALSE}
+ui <- ...
+
+server <- ...
+
+shinyApp(ui = ui, server = server)
+```
+
+Create a new directory, and add an app.R file that looks like this:
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage( "Hello, world!")
+
+server <- function(input, output, session) {}
+
+shinyApp(ui, server)
+```
+
+Adding UI input and output controls
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
+  
+  verbatimTextOutput("summary"),
+  
+  tableOutput("table")
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+- NO OUTPUTS to view. We haven’t yet told Shiny how the input and outputs are related.
+
+Bring the outputs to life
+========================================================
+- We tell Shiny how to perform a computation.
+
+- We DO NOT order Shiny to actually go do it!!
+
+Hadley Wickham: "It’s like the difference between giving someone a recipe versus demanding that they go make you a sandwich."
+
+Adding behavior
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
+  
+  verbatimTextOutput("summary"),
+  
+  tableOutput("table")
+)
+
+server <- function(input, output, session) {
+  
+  output$summary <- renderPrint({
+    
+    dataset <- get(input$dataset, "package:datasets")
+    
+    summary(dataset)
+  })
+  
+  output$table <- renderTable({
+    
+    dataset <- get(input$dataset, "package:datasets")
+    
+    dataset
+  })
+}
+
+shinyApp(ui, server)
+```
+
+Reactivity in shiny
+========================================================
+- Outputs are REACTIVE. - Shiny uses reactive programming to make apps interactive.
+
+- Reactivity in Shiny is a key concept => Outputs are automatically recalculated when their inputs change!!
+
+- Reducing duplication with reactive expressions is possible.
+
+
+How do you create a reactive expression?
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
+  
+  verbatimTextOutput("summary"),
+  
+  tableOutput("table")
+)
+server <- function(input, output, session) {
+  dataset <- reactive({
+    
+    get(input$dataset, "package:datasets")
+  })
+
+  output$summary <- renderPrint({
+    
+    summary(dataset())
+  })
+  
+  output$table <- renderTable({
+    
+    dataset()
+  })
+}
+
+shinyApp(ui, server)
+```
+
+Use appropriate renderTYPE
+========================================================
+Almost every output you’ll write in Shiny will follow this same pattern:
+
+```{r, eval = FALSE}
+output$ID <- renderTYPE({
+  # Expression that generates whatever kind of output
+  # renderTYPE expects
+})
+```
+
+
+UI Inputs
+========================================================
+- Inputs send your messages to Shiny app using [control widgets](https://shiny.rstudio.com/tutorial/written-tutorial/lesson3/).
+
+- Widget is a web element that your users can interact with. 
+
+- Widgets provide a way for your users to send messages to the Shiny app.
+
+```{r, eval = FALSE}
+ui <- fluidPage(
+
+  textInput(inputId, label, ...),
+
+  passwordInput(inputId, label, ...),
+
+  textAreaInput(inputId, label, ...)
+)
+
+server <- server <- function(input, output, session) {}
+
+shinyApp(ui = ui, server = server)
+```
+
+UI Input example: Free text
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  textInput("name", "What's your name?"),
+  
+  passwordInput("password", "What's your password?"),
+  
+  textAreaInput("story", "Tell me about yourself", rows = 3)
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: Numeric inputs
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  numericInput("num", "Number one", value = 0, min = 0, max = 100),
+  
+  sliderInput("num2", "Number two", value = 50, min = 0, max = 100),
+  
+  sliderInput("rng", "Range", value = c(10, 20), min = 0, max = 100)
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: Dates
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  dateInput("dob", "When were you born?"),
+  
+  dateRangeInput("holiday", "When do you want to go on vacation next?")
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: Limited choices
+========================================================
+```{r, eval = FALSE}
+animals <- c("dog", "cat", "mouse", "bird", "other", "I hate animals")
+
+ui <- fluidPage(
+  
+  selectInput("state", "What's your favourite state?", state.name),
+  
+  radioButtons("animal", "What's your favourite animal?", animals)
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: Limited choices
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  selectInput(
+    
+    "state", "What's your favourite state?", state.name,
+    
+    multiple = TRUE
+  )
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: File uploads
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  fileInput("upload", NULL)
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Input example: Action buttons
+========================================================
+Action buttons are most naturally paired with observeEvent() or eventReactive() in the server function. We will NOT discuss this today!
+
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  actionButton("click", "Click me!"),
+  
+  actionButton("drink", "Drink me!", icon = icon("cocktail"))
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```
+
+UI Outputs
+========================================================
+Outputs in the UI create placeholders that are later filled by the server function.
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  textOutput(outputId),
+  
+  verbatimTextOutput(outputId)
+)
+
+server <- server <- function(input, output, session) {}
+
+shinyApp(ui = ui, server = server)
+```
+
+UI Output example: Text
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  textOutput("text"),
+  
+  verbatimTextOutput("code")
+)
+server <- function(input, output, session) {
+  
+  output$text <- renderText({ 
+    
+    "Hello friend!" 
+  })
+  
+  output$code <- renderPrint({ 
+    
+    summary(1:10) 
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+Server function can be written more compactly
+========================================================
+```{r, eval = FALSE}
+server <- function(input, output, session) {
+  
+  output$text <- renderText({ 
+    
+    "Hello friend!" 
+  })
+  
+  output$code <- renderPrint({ 
+    
+    summary(1:10) 
+  })
+}
+```
+Note that the {} are not required in render functions unless you need to run multiple lines of code.
+```{r, eval = FALSE}
+server <- function(input, output, session) {
+  
+  output$text <- renderText("Hello friend!")
+  
+  output$code <- renderPrint(summary(1:10))
+}
+```
+
+UI Output example: Tables
+========================================================
+There are two options for displaying data frames in tables:
+
+- **tableOutput()** and **renderTable()** render a static table of data, showing all the data at once.
+
+- **dataTableOutput()** and **renderDataTable()** render a dynamic table, showing a fixed number of rows along with controls to change which rows are visible.
+
+UI Output example: Static vs dynamic tables
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  tableOutput("static"),
+  
+  dataTableOutput("dynamic")
+)
+server <- function(input, output, session) {
+  
+  output$static <- renderTable(head(mtcars))
+  
+  output$dynamic <- renderDataTable(mtcars, options = list(pageLength = 5))
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+UI Output example: Plots
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+  
+  plotOutput("plot", width = "400px")
+)
+
+server <- function(input, output, session) {
+  
+  output$plot <- renderPlot(plot(1:5))
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+UI Layouts 
+========================================================
+For full list of UI layouts visit [here](https://shiny.rstudio.com/reference/shiny/1.0.5/)
+```{r, eval = FALSE}
+ui <- fluidPage(
+  headerPanel("Central limit theorem"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("m", "Number of samples:", 2, min = 1, max = 100)
+    ),
+    mainPanel(
+      plotOutput("hist")
+    )
+  )
+)
+
+server <- function(input, output, server) {
+  output$hist <- renderPlot({
+    means <- replicate(1e4, mean(runif(input$m)))
+    hist(means, breaks = 20)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+Tips and Tricks
+========================================================
+[Various Tips](https://github.com/daattali/advanced-shiny/) from Dean Attali.
+
+Happy Birthday R-Ladies Melbourne!
+========================================================
+- [R-Ladies Community](https://benubah.github.io/r-community-explorer/rladies.html)
+
+- R-Ladies Melbourne means a family to me. 
+
+- Thanks to all wonderful women who organised dozens of events voluntarily.
+
+- Thanks all of the members who supported and strengthen the community.
+
+
+
